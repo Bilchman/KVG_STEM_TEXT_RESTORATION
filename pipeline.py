@@ -69,7 +69,7 @@ class Pipeline:
         # 4. Контрастна класифікація
         st4 = Algorithms.contrast_classification(
             st1, st3, st2,
-            q = self.cfg["contrast_q"], p1 = self.cfg["contrast_p1"], p2 = self.cfg["contrast_p2"]
+            consts = (self.cfg["contrast_q"], self.cfg["contrast_p1"], self.cfg["contrast_p2"])
         )
 
         # 5. Морфологія (Розширення та звуження)

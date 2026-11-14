@@ -104,25 +104,16 @@ class Algorithms:
         Адаптивна локальна бінаризація Сауволи (Sauvola, 1997).
         Повертає первинну маску переднього плану: 255 — текст, 0 — фон.
         """
-        h, w = lum.shape
         radius = frame // 2
+        intg, intg_sq = Algorithms._get_integrals(lum)
+        bounds = Algorithms._window_bounds(lum.shape, radius)
 
-        intg, intg_sq = Algorithms._intg(lum)
-
-        y = np.arange(h)
-        x = np.arange(w)
-        y1 = np.clip(y - radius, 0, h)[:, None]
-        y2 = np.clip(y + radius + 1, 0, h)[:, None]
-        x1 = np.clip(x - radius, 0, w)[None, :]
-        x2 = np.clip(x + radius + 1, 0, w)[None, :]
-
-        count = (y2 - y1) * (x2 - x1)
-        sum_win = intg[y2, x2] - intg[y1, x2] - intg[y2, x1] + intg[y1, x1]
-        sum_sq = intg_sq[y2, x2] - intg_sq[y1, x2] - intg_sq[y2, x1] + intg_sq[y1, x1]
+        count = Algorithms._window_area(bounds)
+        sum_win = Algorithms._window_sum(intg, bounds)
+        sum_sq = Algorithms._window_sum(intg_sq, bounds)
 
         mean = sum_win / count
-        variance = (sum_sq / count) - (mean ** 2)
-        deviation = np.sqrt(np.maximum(0.0, variance))
+        deviation = np.sqrt(np.maximum(0.0, (sum_sq / count) - (mean ** 2)))
 
         threshold = mean * (1.0 + k * ((deviation / r) - 1.0))
 
@@ -130,20 +121,52 @@ class Algorithms:
         return binary
 
     @staticmethod
-    def _intg(image: np.ndarray):
+    def _window_bounds(shape: tuple, radius: int) -> tuple:
+        """
+        Повертає границі (y1, y2, x1, x2) для вікон навколо кожного пікселя.
+        """
+        h, w = shape
+        y = np.arange(h)
+        x = np.arange(w)
+        y1 = np.clip(y - radius, 0, h)[:, None]
+        y2 = np.clip(y + radius + 1, 0, h)[:, None]
+        x1 = np.clip(x - radius, 0, w)[None, :]
+        x2 = np.clip(x + radius + 1, 0, w)[None, :]
+        return y1, y2, x1, x2
+
+    @staticmethod
+    def _window_sum(integral: np.ndarray, bounds: tuple) -> np.ndarray:
+        """
+        Обчислює суму значень у вікні за інтегральною матрицею та границями.
+        """
+        y1, y2, x1, x2 = bounds
+        return integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]
+
+    @staticmethod
+    def _window_area(bounds: tuple) -> np.ndarray:
+        """
+        Повертає кількість пікселів у кожному вікні.
+        """
+        y1, y2, x1, x2 = bounds
+        return (y2 - y1) * (x2 - x1)
+
+    @staticmethod
+    def _integral(image: np.ndarray) -> np.ndarray:
+        """
+        Обчислює двовимірний інтегральний масив для однієї матриці.
+        """
+        h, w = image.shape
+        intg = np.zeros((h + 1, w + 1), dtype=np.float64)
+        intg[1:, 1:] = np.cumsum(np.cumsum(image.astype(np.float64), axis=0), axis=1)
+        return intg
+
+    @staticmethod
+    def _get_integrals(image: np.ndarray):
         """
         Обчислює двовимірні інтегральні масиви значень пікселів та їх квадратів.
         """
-        h, w = image.shape
         img_f = image.astype(np.float64)
-
-        intg = np.zeros((h + 1, w + 1), dtype=np.float64)
-        intg_sq = np.zeros((h + 1, w + 1), dtype=np.float64)
-
-        intg[1:, 1:] = np.cumsum(np.cumsum(img_f, axis=0), axis=1)
-        intg_sq[1:, 1:] = np.cumsum(np.cumsum(img_f ** 2, axis=0), axis=1)
-
-        return intg, intg_sq
+        return Algorithms._integral(img_f), Algorithms._integral(img_f ** 2)
 
     @staticmethod
     def background(lum: np.ndarray, binary_mask: np.ndarray, radius: int = 20) -> np.ndarray:
@@ -151,60 +174,44 @@ class Algorithms:
         Оцінка поверхні чистого фону B(x, y).
         Інтерполює значення тла під літерами через навколишні фонові пікселі.
         """
-        h, w = lum.shape
-
         mask = (binary_mask == 0).astype(np.float64)
         bg = lum.astype(np.float64) * mask
 
-        intg_bg = np.zeros((h + 1, w + 1), dtype=np.float64)
-        intg_pnts = np.zeros((h + 1, w + 1), dtype=np.float64)
+        intg_bg = Algorithms._integral(bg)
+        intg_pnts = Algorithms._integral(mask)
+        bounds = Algorithms._window_bounds(lum.shape, radius)
 
-        intg_bg[1:, 1:] = np.cumsum(np.cumsum(bg, axis=0), axis=1)
-        intg_pnts[1:, 1:] = np.cumsum(np.cumsum(mask, axis=0), axis=1)
-
-        y = np.arange(h)
-        x = np.arange(w)
-        y1 = np.clip(y - radius, 0, h)[:, None]
-        y2 = np.clip(y + radius + 1, 0, h)[:, None]
-        x1 = np.clip(x - radius, 0, w)[None, :]
-        x2 = np.clip(x + radius + 1, 0, w)[None, :]
-
-        sum_win = intg_bg[y2, x2] - intg_bg[y1, x2] - intg_bg[y2, x1] + intg_bg[y1, x1]
-        points = intg_pnts[y2, x2] - intg_pnts[y1, x2] - intg_pnts[y2, x1] + intg_pnts[y1, x1]
+        sum_win = Algorithms._window_sum(intg_bg, bounds)
+        points = Algorithms._window_sum(intg_pnts, bounds)
 
         points = np.maximum(points, 1.0)
         interpolated = sum_win / points
 
         background = np.where(binary_mask == 0, lum, interpolated)
-
         return np.clip(np.round(background), 0, 255).astype(np.uint8)
 
     @staticmethod
     def contrast_classification(lum: np.ndarray, background: np.ndarray, binary_mask: np.ndarray,
-        q: float = 0.6, p1: float = 0.5, p2: float = 0.8) -> np.ndarray:
+        consts: tuple = (0.6, 0.5, 0.8)) -> np.ndarray:
         """
         Контрастна класифікація пікселів за сигмоїдою.
         Порівнює різницю (B - I) із динамічним порогом для виділення тексту.
         """
-        img = lum.astype(np.float64)
+        q, p1, p2 = consts
         bg = background.astype(np.float64)
-
-        diff = bg - img
+        diff = bg - lum.astype(np.float64)
 
         text_pixels = binary_mask > 0
         delta = np.sum(diff * text_pixels) / np.maximum(np.sum(text_pixels), 1.0)
 
-        bg_pixels = binary_mask == 0
-        bg_avg = np.sum(bg * bg_pixels) / np.maximum(np.sum(bg_pixels), 1.0)
+        bg_avg = np.sum(bg * (~text_pixels)) / np.maximum(np.sum(~text_pixels), 1.0)
         bg_avg = np.maximum(bg_avg, 1e-6)
 
         exp = (-4.0 * bg) / (bg_avg * (1.0 - p1)) + (2.0 * (1.0 + p1)) / (1.0 - p1)
-
         sigmoid = (1.0 - p2) / (1.0 + np.exp(np.clip(exp, -50.0, 50.0))) + p2
         d = q * delta * sigmoid
 
-        result = np.where(diff > d, 255, 0).astype(np.uint8)
-        return result
+        return np.where(diff > d, 255, 0).astype(np.uint8)
 
     @staticmethod
     def shrink_swell(binary: np.ndarray, n: int = 5) -> np.ndarray:
@@ -212,23 +219,12 @@ class Algorithms:
         Морфологічна постобробка звуженням і розширенням.
         Прибирає поодинокий шум та заповнює розриви штрихів.
         """
-        h, w = binary.shape
-        radius = n // 2
         area = n * n
-
         fg = (binary > 0).astype(np.float64)
 
-        intg = np.zeros((h + 1, w + 1), dtype=np.float64)
-        intg[1:, 1:] = np.cumsum(np.cumsum(fg, axis=0), axis=1)
-
-        y = np.arange(h)
-        x = np.arange(w)
-        y1 = np.clip(y - radius, 0, h)[:, None]
-        y2 = np.clip(y + radius + 1, 0, h)[:, None]
-        x1 = np.clip(x - radius, 0, w)[None, :]
-        x2 = np.clip(x + radius + 1, 0, w)[None, :]
-
-        count = intg[y2, x2] - intg[y1, x2] - intg[y2, x1] + intg[y1, x1]
+        intg = Algorithms._integral(fg)
+        bounds = Algorithms._window_bounds(binary.shape, n // 2)
+        count = Algorithms._window_sum(intg, bounds)
 
         # Shrink
         cleaned = np.where((fg == 1) & (count < 0.10 * area), 0, fg)
