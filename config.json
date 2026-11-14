@@ -1,0 +1,15 @@
+{
+  "data_dir": "dataset",
+  "out_dir": "processed",
+  "gt_dir": "gt",
+  "clahe_threshold": 1.0,
+  "clahe_grid": 8,
+  "sauvola_frame": 25,
+  "sauvola_k": 0.2,
+  "sauvola_r": 128.0,
+  "bg_radius": 20,
+  "contrast_q": 0.6,
+  "contrast_p1": 0.5,
+  "contrast_p2": 0.8,
+  "morph_n": 3
+}
