@@ -213,8 +213,8 @@ class Metrics:
         i1 = orig_lum.astype(np.float64)
         i2 = proc_lum.astype(np.float64)
 
-        delta1 = np.abs(i1[1:, :] - i1[:-1, :]) + np.abs(i1[:, 1:] - i1[:, :-1])
-        delta2 = np.abs(i2[1:, :] - i2[:-1, :]) + np.abs(i2[:, 1:] - i2[:, :-1])
+        delta1 = np.abs(i1[1:, :-1] - i1[:-1, :-1]) + np.abs(i1[:-1, 1:] - i1[:-1, :-1])
+        delta2 = np.abs(i2[1:, :-1] - i2[:-1, :-1]) + np.abs(i2[:-1, 1:] - i2[:-1, :-1])
 
         d1_mean = np.mean(delta1)
         d2_mean = np.mean(delta2)
