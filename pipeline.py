@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from algorithms import Algorithms
-from imageIO import ImageIO
+from image_io import ImageIO
 from metrics import Metrics
 
 
