@@ -77,7 +77,7 @@ class Pipeline:
 
         return st1, st2, st3, st4, st5
 
-    def _process_file(self, img_path: Path) -> dict:
+    def process_file(self, img_path: Path) -> dict:
         """
         Відкриття файлу в масив, копіювання оригіналу, запуск пайплайну та збереження.
         """
@@ -205,7 +205,7 @@ class Pipeline:
 
         all_summary = []
         for idx, img_path in enumerate(files, 1):
-            res = self._process_file(img_path)
+            res = self.process_file(img_path)
             all_summary.append(res)
             print(
                 f"[{idx}/{len(files)}] {img_path.name} -> "
