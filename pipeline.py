@@ -27,6 +27,7 @@ class Pipeline:
             "data_dir": "dataset",
             "out_dir": "processed",
             "gt_dir": "gt",
+            "metrics_dir": "metrics",
             "clahe_threshold": 1.0,
             "clahe_grid": 8,
             "sauvola_frame": 25,
@@ -46,6 +47,7 @@ class Pipeline:
         self.data_dir = Path(self.cfg["data_dir"])
         self.out_dir = Path(self.cfg["out_dir"])
         self.gt_dir = Path(self.cfg["gt_dir"])
+        self.metrics_dir = Path(self.cfg["metrics_dir"])
 
     def process(self, lum: np.ndarray) -> tuple:
         """
@@ -214,10 +216,10 @@ class Pipeline:
                 f"{res.get('Status')} ({res.get('Time_s', 0)} с)"
             )
 
-        ts_path = self.out_dir / f"summary_metrics_{launch_time}.csv"
+        ts_path = self.metrics_dir / f"summary_metrics_{launch_time}.csv"
         ImageIO.write_csv(all_summary, ts_path)
 
-        latest_path = self.out_dir / "summary_metrics.csv"
+        latest_path = self.metrics_dir / "summary_metrics.csv"
         ImageIO.write_csv(all_summary, latest_path)
 
         print("Готово! Результати збережено в processed/summary_metrics.csv")

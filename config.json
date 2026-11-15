@@ -2,6 +2,7 @@
   "data_dir": "dataset",
   "out_dir": "processed",
   "gt_dir": "gt",
+  "metrics_dir": "metrics",
   "clahe_threshold": 1.0,
   "clahe_grid": 8,
   "sauvola_frame": 25,
