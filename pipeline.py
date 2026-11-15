@@ -4,6 +4,7 @@
 
 import json
 import time
+from datetime import datetime
 import shutil
 from pathlib import Path
 import numpy as np
@@ -200,6 +201,7 @@ class Pipeline:
         """
         Запуск пайплайну для всієї вибірки з папки dataset.
         """
+        launch_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         files = ImageIO.list_images(self.data_dir)
         print(f"Знайдено {len(files)} фото. Починаємо обробку...")
 
@@ -212,7 +214,12 @@ class Pipeline:
                 f"{res.get('Status')} ({res.get('Time_s', 0)} с)"
             )
 
-        ImageIO.write_csv(all_summary, self.out_dir / "summary_metrics.csv")
+        ts_path = self.out_dir / f"summary_metrics_{launch_time}.csv"
+        ImageIO.write_csv(all_summary, ts_path)
+
+        latest_path = self.out_dir / "summary_metrics.csv"
+        ImageIO.write_csv(all_summary, latest_path)
+
         print("Готово! Результати збережено в processed/summary_metrics.csv")
 
 
