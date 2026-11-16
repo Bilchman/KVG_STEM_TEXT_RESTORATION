@@ -78,6 +78,40 @@ class Metrics:
         return float(2.0 * (precision * recall) / (precision + recall) * 100.0)
 
     @staticmethod
+    def _recall_weights(gt_text: np.ndarray) -> np.ndarray:
+        """
+        Побудова карти ваг pseudo-Recall у діапазоні [0.0, 1.0]
+        Скелет символу і тонкі лінії 1px отримує вагу 1.0, зовнішній край товстих літер 0.0.
+        """
+        dist = np.zeros(gt_text.shape, dtype=np.float64)
+        curr = gt_text.copy()
+        step = 1
+        while np.any(curr):
+            pad = np.pad(curr, 1, mode="constant", constant_values=False)
+            eroded = (
+                pad[:-2, :-2] & pad[:-2, 1:-1] & pad[:-2, 2:] &
+                pad[1:-1, :-2] & pad[1:-1, 1:-1] & pad[1:-1, 2:] &
+                pad[2:, :-2] & pad[2:, 1:-1] & pad[2:, 2:]
+            )
+            dist[curr & (~eroded)] = float(step)
+            curr = eroded
+            step += 1
+
+        pad_d = np.pad(dist, 1, mode="constant", constant_values=0.0)
+        max_nb = np.maximum.reduce([
+            pad_d[:-2, :-2], pad_d[:-2, 1:-1], pad_d[:-2, 2:],
+            pad_d[1:-1, :-2], pad_d[1:-1, 1:-1], pad_d[1:-1, 2:],
+            pad_d[2:, :-2], pad_d[2:, 1:-1], pad_d[2:, 2:]
+        ])
+
+        is_skeleton = gt_text & (dist == max_nb)
+        return np.where(
+            is_skeleton,
+            1.0,
+            np.where(gt_text, (dist - 1.0) / np.maximum(max_nb - 1.0, 1.0), 0.0)
+        )
+
+    @staticmethod
     def pseudo_f_measure(pred_binary: np.ndarray, gt_binary: np.ndarray) -> float:
         """
         Pseudo F-Measure (Fps) за стандартом DIBCO.
@@ -89,22 +123,22 @@ class Metrics:
         pred_text = pred_binary == 0
         gt_text = gt_binary == 0
 
+        r_weights = Metrics._recall_weights(gt_text)
+        r_tp = float(np.sum(r_weights[pred_text & gt_text]))
+        r_fn = float(np.sum(r_weights[(~pred_text) & gt_text]))
+        pseudo_recall = r_tp / (r_tp + r_fn) if (r_tp + r_fn) > 0.0 else 0.0
+
         pad_gt = np.pad(gt_text.astype(np.float64), 1, mode="constant")
-        neighbor_density = (
+        density = (
             pad_gt[:-2, 1:-1] + pad_gt[2:, 1:-1] +
             pad_gt[1:-1, :-2] + pad_gt[1:-1, 2:] +
             pad_gt[:-2, :-2] + pad_gt[:-2, 2:] +
             pad_gt[2:, :-2] + pad_gt[2:, 2:]
         ) / 8.0
 
-        recall_weights = 0.5 + 0.5 * neighbor_density
-        r_tp = float(np.sum(recall_weights[pred_text & gt_text]))
-        r_fn = float(np.sum(recall_weights[(~pred_text) & gt_text]))
-        pseudo_recall = r_tp / (r_tp + r_fn) if (r_tp + r_fn) > 0.0 else 0.0
-
-        prec_weights = 1.0 + neighbor_density
+        p_weights = 1.0 + density
         p_tp = float(np.sum(pred_text & gt_text))
-        p_fp = float(np.sum(prec_weights[pred_text & (~gt_text)]))
+        p_fp = float(np.sum(p_weights[pred_text & (~gt_text)]))
         pseudo_precision = p_tp / (p_tp + p_fp) if (p_tp + p_fp) > 0.0 else 0.0
 
         if pseudo_precision + pseudo_recall == 0.0:

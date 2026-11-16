@@ -123,13 +123,16 @@ class Pipeline:
         folder = self.out_dir / img_path.stem
 
         # 1. Локальний metrics.csv (поетапні метрики для стадій 1..5)
-        local_rows = [{
-            "Stage": f"Stage {i}",
-            "MSE": round(Metrics.mse(st, lum), 2),
-            "PSNR": round(Metrics.psnr(st, lum), 2),
-            "SSIM": round(Metrics.ssim(st, lum), 4),
-            "EPI": round(Metrics.edge_preservation_index(lum, st), 4)
-        } for i, st in enumerate(stages[1:], 1)]
+        local_rows = []
+        for i, st in enumerate(stages[1:], 1):
+            comp = (255 - st) if i in (2, 4, 5) else st
+            local_rows.append({
+                "Stage": f"Stage {i}",
+                "MSE": round(Metrics.mse(comp, lum), 2),
+                "PSNR": round(Metrics.psnr(comp, lum), 2),
+                "SSIM": round(Metrics.ssim(comp, lum), 4),
+                "EPI": round(Metrics.edge_preservation_index(lum, comp), 4)
+            })
         ImageIO.write_csv(local_rows, folder / "metrics.csv")
 
         # 2. Базові та шумові метрики для загального звіту

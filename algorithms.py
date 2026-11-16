@@ -221,15 +221,14 @@ class Algorithms:
         """
         area = n * n
         fg = (binary > 0).astype(np.float64)
-
-        intg = Algorithms._integral(fg)
         bounds = Algorithms._window_bounds(binary.shape, n // 2)
-        count = Algorithms._window_sum(intg, bounds)
 
         # Shrink
-        cleaned = np.where((fg == 1) & (count < 0.10 * area), 0, fg)
+        count_fg = Algorithms._window_sum(Algorithms._integral(fg), bounds)
+        cleaned = np.where((fg == 1) & ((count_fg - 1.0) < 0.10 * area), 0, fg)
 
         # Swell
-        final = np.where((cleaned == 0) & (count > 0.35 * area), 1, cleaned)
+        count_clean = Algorithms._window_sum(Algorithms._integral(cleaned), bounds)
+        final = np.where((cleaned == 0) & (count_clean > 0.35 * area), 1, cleaned)
 
         return (final * 255).astype(np.uint8)

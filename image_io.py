@@ -5,6 +5,7 @@
 from pathlib import Path
 import csv
 from typing import Optional, List
+import re
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
@@ -77,7 +78,10 @@ class ImageIO:
             if file_path.is_file() and file_path.suffix.lower() in ImageIO.EXTENSIONS:
                 images.append(file_path)
 
-        images.sort()
+        images.sort(
+            key = lambda p:
+                [int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", p.name)]
+        )
         return images
 
     @staticmethod
