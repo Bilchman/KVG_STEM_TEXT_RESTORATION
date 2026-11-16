@@ -131,7 +131,7 @@
 
   $$\text{DRD} = \frac{\sum_{k=1}^{S} \text{DRD}_k}{\text{NUBN}}$$
 
-  $$\text{DRD_{k}}=\sum_{i=-2}^{2}\sum_{j=-2}^{2}|\text{GT}_k(i, j)-B_k(x, y)|\cdot W_{Nm}(i, j)$$
+  $$\text{DRD_{k}}=\sum_{i=-2}^{2}\sum_{j=-2}^{2}|\text{GT}_{k(i, j)}-B_{k(x, y)}|\cdot W_{Nm}(i, j)$$
 
   $$W_{Nm}(i, j) = \frac{W_m(i, j)}{\sum_{i=-2}^{2} \sum_{j=-2}^{2} W_m(i, j)}, \quad W_m(i, j) = \frac{1}{\sqrt{i^2 + j^2}} \quad ((i, j) \neq (0, 0)), \quad W_m(0, 0) = 0$$
 
